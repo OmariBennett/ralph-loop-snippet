@@ -48,15 +48,14 @@ bash todo/todo-ralph-once.sh
 ## Command Syntax
 
 ```
+new-ralph-loop <name>
 new-ralph-loop <namespace>/<name>
 ```
 
-| Part | Description | Example |
+| Form | Behavior | Example |
 |---|---|---|
-| `namespace` | Folder to create | `todo` |
-| `name` | Base name for all generated files | `todo` |
-
-They can differ: `new-ralph-loop myapp/auth` creates `myapp/auth-*.{sh,ps1,...}`.
+| `<name>` | Creates `<name>/` folder, files named `<name>-*` | `new-ralph-loop foo` |
+| `<namespace>/<name>` | Creates `<namespace>/` folder, files named `<name>-*` | `new-ralph-loop myapp/auth` |
 
 ---
 

@@ -24,13 +24,18 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 # --- Parse argument ---
-if ($LoopPath -notmatch '^([^/]+)/([^/]+)$') {
-    Write-Error "Argument must be in format <namespace>/<name>  (e.g. todo/todo)"
+# Accept either "name" (shorthand for "name/name") or "namespace/name"
+if ($LoopPath -match '^([^/]+)/([^/]+)$') {
+    $namespace = $Matches[1]
+    $name      = $Matches[2]
+} elseif ($LoopPath -match '^([^/]+)$') {
+    $namespace = $Matches[1]
+    $name      = $Matches[1]
+} else {
+    Write-Error "Argument must be a name (e.g. foo) or namespace/name (e.g. foo/foo)"
     exit 1
 }
-$namespace = $Matches[1]
-$name      = $Matches[2]
-$dir       = $namespace
+$dir = $namespace
 
 # --- Create directory ---
 if (-not (Test-Path $dir)) {
