@@ -40,7 +40,8 @@ powershell.exe -ExecutionPolicy Bypass -File ./new-ralph-loop.ps1 todo/todo
 #    Open todo/todo-prd.json and describe what you want Claude to build
 
 # 3. Run one HITL iteration — watch, intervene as needed
-bash todo/todo-ralph-once.sh
+pwsh todo/todo-ralph-once.ps1       # Windows / PowerShell
+bash todo/todo-ralph-once.sh        # Linux / macOS / WSL
 ```
 
 ---
@@ -65,18 +66,23 @@ Running `new-ralph-loop todo/todo` produces:
 
 ```
 todo/
-├── todo-ralph-once.sh    ← HITL runner (PRIMARY — use this first)
+├── todo-ralph-once.ps1   ← HITL runner — Windows / PowerShell (PRIMARY)
+├── todo-ralph-once.sh    ← HITL runner — Linux / macOS / WSL
 ├── todo-ralph.ps1        ← AFK full loop runner
 ├── todo-prd.json         ← Feature list for Claude to work from
 ├── todo-progress.txt     ← Append-only log Claude writes each run
 └── todo-AGENTS.md        ← Quality rules and feedback loop commands
 ```
 
-### `todo-ralph-once.sh` — HITL Single-Iteration Runner
+### `todo-ralph-once.ps1` / `todo-ralph-once.sh` — HITL Single-Iteration Runner
 
-The primary file. Runs **one** Claude iteration. You watch everything it does and step in when needed.
+The primary files. Runs **one** Claude iteration. You watch everything it does and step in when needed.
 
-```bash
+```powershell
+# Windows
+pwsh todo/todo-ralph-once.ps1
+
+# Linux / macOS / WSL
 bash todo/todo-ralph-once.sh
 ```
 
@@ -141,17 +147,18 @@ Tells Claude the quality bar, priority order, feedback loop commands for your st
 ## Recommended Workflow
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  1. Scaffold    new-ralph-loop myproject/myfeature  │
-│  2. Edit PRD    Add your features to -prd.json      │
-│  3. Edit AGENTS Adjust feedback loop commands       │
-│  4. HITL run    bash myfeature-ralph-once.sh        │
-│     └─ Watch Claude, read its output                │
-│     └─ Check git diff / git log                     │
-│     └─ Edit PRD or prompt if needed                 │
-│  5. Repeat step 4 until the prompt is solid         │
-│  6. AFK run     pwsh myfeature-ralph.ps1 -Max 20   │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  1. Scaffold    new-ralph-loop myproject/myfeature           │
+│  2. Edit PRD    Add your features to -prd.json               │
+│  3. Edit AGENTS Adjust feedback loop commands for your stack │
+│  4. HITL run    pwsh myfeature-ralph-once.ps1  (Windows)     │
+│                 bash myfeature-ralph-once.sh   (Linux/Mac)   │
+│     └─ Watch Claude, read its output                         │
+│     └─ Check git diff / git log                              │
+│     └─ Edit PRD or AGENTS.md if needed                       │
+│  5. Repeat step 4 until the prompt is solid                  │
+│  6. AFK run     pwsh myfeature-ralph.ps1 -MaxIterations 20   │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ---

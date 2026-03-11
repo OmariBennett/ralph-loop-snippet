@@ -90,12 +90,55 @@ if echo "$result" | grep -q '<promise>COMPLETE</promise>'; then
 fi
 '@
 
-# 2. ralph.ps1  (full loop runner)
+# 2. ralph-once.ps1  (HITL runner — Windows native)
+$ralphOncePs1 = @'
+#!/usr/bin/env pwsh
+# __NAME__-ralph-once.ps1 — HITL single-iteration runner (Windows / PowerShell)
+# Run this once, watch what Claude does, intervene when needed.
+# Refine the PRD or prompt between runs before going AFK.
+#
+# Usage:
+#   pwsh __NAME__-ralph-once.ps1
+#
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$prd       = Join-Path $scriptDir "__NAME__-prd.json"
+$progress  = Join-Path $scriptDir "__NAME__-progress.txt"
+
+if (-not (Test-Path $prd)) {
+    Write-Error "PRD not found: $prd"
+    exit 1
+}
+
+Write-Host "==> Ralph HITL — single iteration for: __NAME__"
+Write-Host "    PRD:      $prd"
+Write-Host "    Progress: $progress"
+Write-Host ""
+
+$result = claude -p "@$prd @$progress
+1. Decide which task to work on next — highest priority by YOUR judgment, not list order.
+2. Check feedback loops (types, tests, lint) before and after changes.
+3. Append your progress to __NAME__-progress.txt (date, task, files changed, decisions, blockers).
+4. Make a git commit of that feature with a descriptive message.
+ONLY WORK ON A SINGLE FEATURE PER RUN.
+If, while implementing the feature, you notice that all work is complete, output <promise>COMPLETE</promise>."
+
+Write-Host $result
+
+if ($result -match '<promise>COMPLETE</promise>') {
+    Write-Host ""
+    Write-Host "==> COMPLETE signal received. All features done."
+}
+'@
+
+# 3. ralph.ps1  (full loop runner)
 $ralphLoop = @'
 #!/usr/bin/env pwsh
 # __NAME__-ralph.ps1 — Full loop runner (AFK mode)
-# Run ralph-once.sh repeatedly up to MaxIterations.
-# Prefer ralph-once.sh for HITL / prompt refinement first.
+# Calls ralph-once.ps1 repeatedly up to MaxIterations.
+# Prefer ralph-once.ps1 for HITL / prompt refinement first.
 #
 # Usage:
 #   pwsh __NAME__-ralph.ps1 [-MaxIterations 10]
@@ -107,8 +150,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$scriptDir     = Split-Path -Parent $MyInvocation.MyCommand.Path
-$runnerScript  = Join-Path $scriptDir "__NAME__-ralph-once.sh"
+$scriptDir    = Split-Path -Parent $MyInvocation.MyCommand.Path
+$runnerScript = Join-Path $scriptDir "__NAME__-ralph-once.ps1"
 
 if (-not (Test-Path $runnerScript)) {
     Write-Error "Runner not found: $runnerScript"
@@ -121,7 +164,7 @@ for ($i = 1; $i -le $MaxIterations; $i++) {
     Write-Host ""
     Write-Host "--- Iteration $i / $MaxIterations ---"
 
-    $result = bash "$runnerScript" 2>&1
+    $result = pwsh -File "$runnerScript" 2>&1
     Write-Host $result
 
     if ($result -match '<promise>COMPLETE</promise>') {
@@ -230,11 +273,12 @@ output exactly: `<promise>COMPLETE</promise>`
 # Substitute placeholder and write files
 # ─────────────────────────────────────────────
 $files = [ordered]@{
-    "$dir/$name-ralph-once.sh" = $ralphOnce  -replace '__NAME__', $name
-    "$dir/$name-ralph.ps1"     = $ralphLoop  -replace '__NAME__', $name
-    "$dir/$name-prd.json"      = $prd        -replace '__NAME__', $name
-    "$dir/$name-progress.txt"  = $progress   -replace '__NAME__', $name
-    "$dir/$name-AGENTS.md"     = $agents     -replace '__NAME__', $name
+    "$dir/$name-ralph-once.ps1" = $ralphOncePs1 -replace '__NAME__', $name
+    "$dir/$name-ralph-once.sh"  = $ralphOnce    -replace '__NAME__', $name
+    "$dir/$name-ralph.ps1"      = $ralphLoop    -replace '__NAME__', $name
+    "$dir/$name-prd.json"       = $prd          -replace '__NAME__', $name
+    "$dir/$name-progress.txt"   = $progress     -replace '__NAME__', $name
+    "$dir/$name-AGENTS.md"      = $agents       -replace '__NAME__', $name
 }
 
 foreach ($entry in $files.GetEnumerator()) {
@@ -255,7 +299,8 @@ Write-Host "Next steps:"
 Write-Host "  1. Edit ./$dir/$name-prd.json  — fill in your features"
 Write-Host "  2. Edit ./$dir/$name-AGENTS.md — adjust feedback loop commands for your stack"
 Write-Host "  3. Run one HITL iteration (watch and intervene as needed):"
-Write-Host "       bash ./$dir/$name-ralph-once.sh"
+Write-Host "       pwsh ./$dir/$name-ralph-once.ps1    # Windows / PowerShell"
+Write-Host "       bash ./$dir/$name-ralph-once.sh     # Linux / macOS / WSL"
 Write-Host ""
 Write-Host "To install globally, copy this script to a directory on your PATH:"
 Write-Host "  Copy-Item ./new-ralph-loop.ps1 `$HOME/.local/bin/new-ralph-loop.ps1"
