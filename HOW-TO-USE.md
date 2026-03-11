@@ -1,181 +1,159 @@
-# How to Use `new-ralph-loop`
+# How to Use new-ralph-loop
 
-Scaffolds a **HITL Ralph loop** for any project — one command creates everything you need to run Claude iteratively, watch its work, and step in when needed.
+Scaffold a HITL Ralph loop for any project on Windows.
 
 ---
 
 ## Prerequisites
 
-- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated (`claude --version`)
-- PowerShell (Windows PowerShell 5.1+ or PowerShell Core 7+)
-- Bash (Git Bash, WSL, macOS/Linux terminal)
+- Windows with PowerShell
+- `claude` CLI installed and on your PATH
 
 ---
 
-## Installation
+## One-Time Global Install
 
-### Option A — Use from this repo (one project)
+Copy both files to a directory on your PATH so `new-ralph-loop` works from any project:
+
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -File ./new-ralph-loop.ps1 <namespace>/<name>
+Copy-Item .\new-ralph-loop.ps1 "$HOME\AppData\Local\Microsoft\WindowsApps\new-ralph-loop.ps1"
+Copy-Item .\new-ralph-loop.bat "$HOME\AppData\Local\Microsoft\WindowsApps\new-ralph-loop.bat"
 ```
 
-### Option B — Install globally (all future projects)
-Copy the script to any directory on your `$PATH`:
-```powershell
-Copy-Item ./new-ralph-loop.ps1 "$HOME/.local/bin/new-ralph-loop.ps1"
-
-# Then from any repo:
-new-ralph-loop.ps1 <namespace>/<name>
-```
+Restart your terminal. You can now run `new-ralph-loop` from anywhere.
 
 ---
 
-## Quickstart
+## Step 1 - Scaffold a New Loop
+
+Navigate to your project root, then run:
 
 ```powershell
-# 1. Scaffold a loop
-powershell.exe -ExecutionPolicy Bypass -File ./new-ralph-loop.ps1 todo/todo
-
-# 2. Fill in your features
-#    Open todo/todo-prd.json and describe what you want Claude to build
-
-# 3. Run one HITL iteration — watch, intervene as needed
-pwsh todo/todo-ralph-once.ps1       # Windows / PowerShell
-bash todo/todo-ralph-once.sh        # Linux / macOS / WSL
+new-ralph-loop <name>/<name>
 ```
+
+**Example:**
+
+```powershell
+cd C:\your\project
+new-ralph-loop todo/todo
+```
+
+This creates a `todo\` folder with 5 files:
+
+| File | Purpose |
+|------|---------|
+| `todo-ralph-once.ps1` | HITL runner (Windows / PowerShell) |
+| `todo-ralph-once.sh` | HITL runner (Git Bash / WSL / macOS) |
+| `todo-prd.json` | PRD - define your features here |
+| `todo-progress.txt` | Progress tracker - Claude appends here |
+| `todo-AGENTS.md` | Quality expectations + feedback loop commands |
 
 ---
 
-## Command Syntax
+## Step 2 - Define Your Features in the PRD
 
-```
-new-ralph-loop <name>
-new-ralph-loop <namespace>/<name>
-```
-
-| Form | Behavior | Example |
-|---|---|---|
-| `<name>` | Creates `<name>/` folder, files named `<name>-*` | `new-ralph-loop foo` |
-| `<namespace>/<name>` | Creates `<namespace>/` folder, files named `<name>-*` | `new-ralph-loop myapp/auth` |
-
----
-
-## Generated Files
-
-Running `new-ralph-loop todo/todo` produces:
-
-```
-todo/
-├── todo-ralph-once.ps1   ← HITL runner — Windows / PowerShell (PRIMARY)
-├── todo-ralph-once.sh    ← HITL runner — Linux / macOS / WSL
-├── todo-ralph.ps1        ← AFK full loop runner
-├── todo-prd.json         ← Feature list for Claude to work from
-├── todo-progress.txt     ← Append-only log Claude writes each run
-└── todo-AGENTS.md        ← Quality rules and feedback loop commands
-```
-
-### `todo-ralph-once.ps1` / `todo-ralph-once.sh` — HITL Single-Iteration Runner
-
-The primary files. Runs **one** Claude iteration. You watch everything it does and step in when needed.
-
-```powershell
-# Windows
-pwsh todo/todo-ralph-once.ps1
-
-# Linux / macOS / WSL
-bash todo/todo-ralph-once.sh
-```
-
-Claude will:
-1. Read your PRD and progress log
-2. Pick the highest-priority incomplete task
-3. Run feedback loops (types, tests, lint)
-4. Append a progress entry to `todo-progress.txt`
-5. Make a git commit
-6. Output `<promise>COMPLETE</promise>` if all features are done
-
-### `todo-ralph.ps1` — Full Loop Runner (AFK)
-
-Calls `ralph-once.sh` repeatedly up to a cap. Use this **after** HITL refinement, when the prompt is solid.
-
-```powershell
-pwsh todo/todo-ralph.ps1 -MaxIterations 10
-```
-
-Exits automatically when Claude outputs `<promise>COMPLETE</promise>`.
-
-### `todo-prd.json` — Product Requirements Document
-
-Describes what Claude should build. Edit this before your first run.
+Open `todo-prd.json` and replace the placeholder entries:
 
 ```json
 {
   "project": "todo",
+  "description": "Describe this project / feature set",
   "features": [
     {
       "id": 1,
-      "category": "architecture",
-      "description": "Set up project structure and dependencies",
-      "steps": ["Initialize package.json", "Install dependencies"],
+      "category": "functional",
+      "description": "User can log in with email and password",
+      "steps": [
+        "POST /auth/login returns a JWT on valid credentials",
+        "Invalid credentials return 401"
+      ],
       "passes": false
     }
   ],
-  "feedback_loops": ["tsc --noEmit", "npm test", "eslint ."]
+  "feedback_loops": [
+    "npm run typecheck  (or: tsc --noEmit / mypy . / cargo check)",
+    "npm test           (or: pytest / cargo test / go test ./...)",
+    "npm run lint       (or: eslint . / ruff check . / clippy)"
+  ],
+  "done_criteria": "All features have passes=true and all feedback loops are green."
 }
 ```
 
-Set `"passes": true` on a feature when Claude finishes it (or let Claude do it).
-
-### `todo-progress.txt` — Progress Log
-
-Claude appends here after each run. Review it between iterations to understand what happened.
-
-```
-[Iteration 1 | 2026-03-10]
-Task: Initialize project structure
-Files changed: package.json, tsconfig.json, src/index.ts
-Key decisions: Used ESM modules for tree-shaking
-Blockers: none
-```
-
-### `todo-AGENTS.md` — Agent Quality Rules
-
-Tells Claude the quality bar, priority order, feedback loop commands for your stack, and the completion signal format. Edit the feedback loop commands to match your project.
+- Each feature starts with `"passes": false`
+- Claude sets it to `true` when the feature is complete
+- Claude emits `<promise>COMPLETE</promise>` when all features pass
 
 ---
 
-## Recommended Workflow
+## Step 3 - Configure AGENTS.md
 
+Open `todo-AGENTS.md` and:
+
+1. Pick your repo type (Prototype / Production / Library) and delete the others
+2. Update the feedback loop commands to match your stack
+
+**Examples by stack:**
+
+| Stack | Typecheck | Tests | Lint |
+|-------|-----------|-------|------|
+| Node/TS | `tsc --noEmit` | `npm test` | `eslint .` |
+| Python | `mypy .` | `pytest` | `ruff check .` |
+| Rust | `cargo check` | `cargo test` | `cargo clippy` |
+
+---
+
+## Step 4 - Run One HITL Iteration
+
+Watch Claude work. Intervene if it goes off track.
+
+**Windows (PowerShell):**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\todo\todo-ralph-once.ps1
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  1. Scaffold    new-ralph-loop myproject/myfeature           │
-│  2. Edit PRD    Add your features to -prd.json               │
-│  3. Edit AGENTS Adjust feedback loop commands for your stack │
-│  4. HITL run    pwsh myfeature-ralph-once.ps1  (Windows)     │
-│                 bash myfeature-ralph-once.sh   (Linux/Mac)   │
-│     └─ Watch Claude, read its output                         │
-│     └─ Check git diff / git log                              │
-│     └─ Edit PRD or AGENTS.md if needed                       │
-│  5. Repeat step 4 until the prompt is solid                  │
-│  6. AFK run     pwsh myfeature-ralph.ps1 -MaxIterations 20   │
-└──────────────────────────────────────────────────────────────┘
+
+**Git Bash / WSL / macOS:**
+
+```bash
+bash ./todo/todo-ralph-once.sh
+```
+
+Each iteration Claude will:
+1. Read the PRD and progress file
+2. Pick the highest-priority incomplete feature
+3. Implement it (one feature only)
+4. Run feedback loops - fix any failures before committing
+5. Append a dated entry to `todo-progress.txt`
+6. Make a git commit
+7. Emit `<promise>COMPLETE</promise>` if all features are done
+
+---
+
+## Step 5 - Review and Repeat
+
+- Check the commit Claude made
+- If something is wrong, fix it or revert, then re-run
+- Adjust the PRD mid-sprint if needed - set `"passes": false` to redo a feature
+- Re-run the runner for the next feature
+
+---
+
+## Cleanup
+
+When your sprint is done, delete `progress.txt` - it is session-specific, not permanent documentation.
+
+```powershell
+Remove-Item .\todo\todo-progress.txt
 ```
 
 ---
 
-## Tips
+## Troubleshooting
 
-**Start HITL, not AFK.**
-Always do several `ralph-once.sh` runs first. Watch exactly what Claude does. Refine the PRD and `AGENTS.md` until Claude behaves correctly, then switch to the full loop.
-
-**One feature per run.**
-Claude is instructed to work on exactly one feature per iteration. Keep PRD features small and scoped.
-
-**Git is your safety net.**
-Claude commits after each feature. If a run goes wrong, `git reset --hard HEAD~1` to undo it.
-
-**Feedback loops are non-negotiable.**
-Claude won't mark a feature done until types, tests, and lint pass. Update the commands in `AGENTS.md` for your stack before the first run.
-
-**Cap your iterations.**
-`ralph.ps1` defaults to 10 iterations. Increase with `-MaxIterations 30` for larger tasks.
+| Error | Fix |
+|-------|-----|
+| `claude: command not found` | Install the Claude CLI and ensure it is on your PATH |
+| `cannot be loaded, running scripts is disabled` | Use the `.bat` wrapper instead of calling `.ps1` directly |
+| `@file not found` | The script uses `Push-Location` to fix this automatically - make sure you are using the generated `ralph-once.ps1`, not an old version |
+| PRD not found | Run the runner from any directory - it resolves paths from the script's own location |

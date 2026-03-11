@@ -1,0 +1,6 @@
+# test Progress Log
+# Claude appends one entry here after each iteration.
+# Format: [Iteration N | YYYY-MM-DD] Task | Files changed | Key decisions | Blockers
+# Delete this file when your sprint is done - it is session-specific, not permanent docs.
+# -----------------------------------------------------------------------
+

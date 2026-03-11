@@ -1,94 +1,96 @@
-# new-ralph.ps1 — HITL Ralph Loop Scaffold Generator
+# new-ralph-loop - HITL Ralph Loop Scaffold Generator
 
-## What It Does
-`new-ralph.ps1 <project-name>` auto-generates all components for a HITL Ralph loop project, based on the [11 Tips For AI Coding With Ralph Wiggum](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum).
+Scaffolds a [Ralph Wiggum](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum) HITL (human-in-the-loop) workflow for any project on Windows.
 
-**HITL** (human-in-the-loop): run once, watch, intervene. Best for learning and prompt refinement.
+**HITL**: run once, watch, intervene. Best for learning and prompt refinement.
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `new-ralph-loop.ps1` | Generator script |
+| `new-ralph-loop.bat` | Windows wrapper (no execution policy hassle) |
 
 ## Usage
 
 ```powershell
-.\new-ralph.ps1 <project-name>
-# Example:
-.\new-ralph.ps1 my-app
+# From this directory:
+.\new-ralph-loop.bat todo/todo
 
-# With git worktree:
-.\new-ralph.ps1 my-app -Worktree -Branch jaragua-lizard
+# Or with PowerShell directly:
+powershell -ExecutionPolicy Bypass -File .\new-ralph-loop.ps1 todo/todo
+
+# Shorthand (todo -> todo/todo):
+.\new-ralph-loop.bat todo
 ```
 
-## Checklist / Outline
+## What Gets Generated
 
-- [ ] `new-ralph.ps1` — PowerShell generator script (root of repo)
-- [ ] `<name>/<name>-ralph-once.sh` — HITL single-iteration runner
-- [ ] `<name>/<name>-prd.json` — PRD template (JSON format)
-- [ ] `<name>/<name>-progress.txt` — blank progress tracker
-- [ ] `<name>/<name>-AGENTS.md` — quality expectations + feedback loops
-- [ ] `<name>/docker-example.txt` — Docker explainer (junior dev)
-- [ ] `<name>/docker-compose-example.txt` — Docker Compose explainer (junior dev)
+Running `new-ralph-loop todo/todo` or `new-ralph-loop todo` creates `.\todo\` with:
 
-## Generated Files
+| File | Purpose |
+|------|---------|
+| `todo-ralph-once.ps1` | HITL runner (Windows / PowerShell) |
+| `todo-ralph-once.sh` | HITL runner (Git Bash / WSL / macOS) |
+| `todo-prd.json` | PRD template - define features here |
+| `todo-progress.txt` | Progress tracker - Claude appends here |
+| `todo-AGENTS.md` | Quality expectations + feedback loop commands |
 
-### `<name>-ralph-once.sh`
-HITL runner. Run once, watch Claude work, intervene if needed.
-- Uses `docker sandbox run claude` (sandbox isolates Claude from home dir/SSH keys)
-- Prompt: read PRD + progress → pick highest-priority task → run feedback loops → append progress → git commit → emit `<promise>COMPLETE</promise>` if done
-- Cleanup: delete `progress.txt` after sprint
+## Global Install
 
-### `<name>-prd.json`
-Define your scope. JSON format with acceptance criteria per feature.
+Copy both files to a directory on your PATH so `new-ralph-loop` works from any project:
+
+```powershell
+Copy-Item .\new-ralph-loop.ps1 "$HOME\AppData\Local\Microsoft\WindowsApps\new-ralph-loop.ps1"
+Copy-Item .\new-ralph-loop.bat "$HOME\AppData\Local\Microsoft\WindowsApps\new-ralph-loop.bat"
+```
+
+Then restart your terminal and use from any directory:
+
+```powershell
+cd C:\your\other\project
+new-ralph-loop myfeature/myfeature
+# or shorthand:
+new-ralph-loop myfeature
+```
+
+## Workflow
+
+1. Generate: `new-ralph-loop myapp/myapp` or `new-ralph-loop myapp`
+2. Edit `myapp-prd.json` - fill in your features with acceptance criteria
+3. Edit `myapp-AGENTS.md` - pick repo type, update feedback loop commands for your stack
+4. Run one iteration and watch:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\myapp\myapp-ralph-once.ps1
+   ```
+5. Intervene if needed, refine the PRD, run again
+
+## PRD Format
+
 ```json
-[
-  {
-    "category": "functional",
-    "description": "TODO: describe feature",
-    "steps": ["Step 1", "Step 2"],
-    "passes": false
-  }
-]
+{
+  "project": "myapp",
+  "description": "Describe this project / feature set",
+  "features": [
+    {
+      "id": 1,
+      "category": "functional",
+      "description": "User can log in",
+      "steps": ["POST /auth/login returns JWT", "Invalid creds return 401"],
+      "passes": false
+    }
+  ],
+  "feedback_loops": [
+    "npm run typecheck  (or: tsc --noEmit / mypy . / cargo check)",
+    "npm test           (or: pytest / cargo test / go test ./...)",
+    "npm run lint       (or: eslint . / ruff check . / clippy)"
+  ],
+  "done_criteria": "All features have passes=true and all feedback loops are green."
+}
 ```
-Set `"passes": true` when a feature is complete. Ralph emits `COMPLETE` when all items pass.
 
-### `<name>-progress.txt`
-Session progress tracker. Ralph reads it each iteration to skip re-exploration.
-```
-# Format: [date] task — what was done, decisions, blockers
-```
-Delete after sprint is complete (session-specific, not permanent docs).
+Set `"passes": true` when a feature is complete. Claude emits `<promise>COMPLETE</promise>` when all items pass.
 
-### `<name>-AGENTS.md`
-Quality expectations Ralph reads every iteration:
-1. Repo type (prototype / production / library)
-2. Feedback loops (typecheck, test, lint, pre-commit hooks)
-3. Step size rule (one logical change per commit)
-4. Priority order (arch → integration → features → polish)
-5. Quality expectation: fight entropy, leave it better than you found it
+## Why Push-Location?
 
-### `docker-example.txt`
-Plain-English Docker walkthrough for junior devs:
-- What a Dockerfile is (recipe for your app's environment)
-- Key instructions: `FROM`, `WORKDIR`, `COPY`, `RUN`, `EXPOSE`, `CMD`
-- How `docker sandbox run` isolates Claude (mounts CWD, blocks home dir/SSH)
-
-### `docker-compose-example.txt`
-Plain-English Docker Compose walkthrough for junior devs:
-- What docker-compose is (orchestrates multiple containers)
-- Key sections: `services`, `volumes`, `ports`, `environment`
-- Example: `app` + `db` service
-- When to use: Ralph's project needs a database/backend for feedback loops
-
-## Feedback Loops
-
-| Loop | What It Catches |
-|------|----------------|
-| TypeScript types | Type mismatches, missing props |
-| Unit tests | Broken logic, regressions |
-| Playwright MCP server | UI bugs, broken interactions |
-| ESLint / linting | Code style, potential bugs |
-| Pre-commit hooks | Blocks bad commits entirely |
-
-## Verification
-
-1. `.\new-ralph.ps1 my-app` — creates `.\my-app\` with 6 files
-2. `Test-Path my-app\my-app-ralph-once.sh` — confirm file exists
-3. `Get-Content my-app\my-app-prd.json` — confirm valid JSON
-4. `.\new-ralph.ps1` (no arg) — prints usage error
+Claude Code's `@filename` syntax resolves files **relative to the current working directory**. The generated `ralph-once.ps1` uses `Push-Location` into the project folder before calling claude, so `@todo-prd.json` always resolves correctly regardless of where you call the script from.
