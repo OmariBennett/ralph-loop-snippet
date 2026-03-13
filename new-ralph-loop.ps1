@@ -108,7 +108,7 @@ ONLY WORK ON A SINGLE FEATURE PER RUN.
 If all features in the PRD have passes=true and all feedback loops are green,
 output exactly: <promise>COMPLETE</promise>"
 
-    $result = claude -p $prompt
+    $result = claude -p --dangerously-skip-permissions $prompt
     Write-Host $result
 
     if ($result -match '<promise>COMPLETE</promise>') {
@@ -148,7 +148,7 @@ echo ""
 # cd into project dir so @file references resolve correctly for claude
 cd "$DIR"
 
-result=$(claude -p \
+result=$(claude -p --dangerously-skip-permissions \
 "@${PRD} @${PROGRESS}
 1. Decide which task to work on next - highest priority by YOUR judgment, not list order.
 2. Check feedback loops (types, tests, lint) before and after changes.
