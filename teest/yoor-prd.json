@@ -1,0 +1,32 @@
+﻿{
+	"project": "test",
+	"description": "Smoke test: verify that ralph-once.ps1 scaffolds and runs correctly end-to-end.",
+	"features": [
+		{
+			"id": 1,
+			"category": "architecture",
+			"description": "Create a hello.txt file containing the text 'Hello, Ralph!'",
+			"steps": [
+				"File test/hello.txt exists",
+				"File contains exactly the text: Hello, Ralph!"
+			],
+			"passes": true
+		},
+		{
+			"id": 2,
+			"category": "functional",
+			"description": "Append a timestamp line to hello.txt",
+			"steps": [
+				"hello.txt contains at least 2 lines",
+				"Second line matches pattern: Timestamp: YYYY-MM-DD"
+			],
+			"passes": false
+		}
+	],
+	"feedback_loops": [
+		"pwsh -Command \"if (Test-Path test/hello.txt) { Write-Output 'types OK' } else { throw 'hello.txt missing' }\"",
+		"pwsh -Command \"Write-Output 'tests OK (no test runner in this scaffold test)'\"",
+		"pwsh -Command \"Write-Output 'lint OK (no linter in this scaffold test)'\""
+	],
+	"done_criteria": "All features have passes=true and all feedback loops are green."
+}

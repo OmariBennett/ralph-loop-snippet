@@ -1,0 +1,6 @@
+﻿# yoor Progress Log
+# Claude appends an entry here after each iteration.
+# Format: [Iteration N | DATE] Task | Files changed | Decisions | Blockers
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+[Iteration 1 | 2026-03-13] Feature 1: Create test/hello.txt | Files: test/hello.txt (created), yoor-prd.json (id=1 passes->true) | Decisions: wrote "Hello, Ralph\!" as file content | Blockers: none
