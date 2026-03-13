@@ -20,7 +20,7 @@
 				"hello.txt contains at least 2 lines",
 				"Second line matches pattern: Timestamp: YYYY-MM-DD"
 			],
-			"passes": false
+			"passes": true
 		}
 	],
 	"feedback_loops": [
