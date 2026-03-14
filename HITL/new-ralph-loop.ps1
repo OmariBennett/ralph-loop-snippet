@@ -99,6 +99,9 @@ $bashCmd = Get-Command bash -ErrorAction SilentlyContinue
 if ($bashCmd) { $bash = $bashCmd.Source } else { $bash = 'bash' }
 $runnerSh = Join-Path $projectDir "__NAME__-ralph-once.sh"
 
+# Capture commits before run to show what's new after
+$commitsBefore = git log --oneline 2>$null
+
 # IMPORTANT: Push-Location so claude's @file references resolve correctly.
 # Claude Code's @filename syntax is relative to the current working directory.
 Push-Location $projectDir
@@ -108,13 +111,22 @@ try {
 2. Check feedback loops (types, tests, lint) before and after changes.
 3. Append your progress to ${progressRelative} in this format:
    [Iteration N | YYYY-MM-DD] Task | Files changed | Key decisions | Blockers
-4. Make a git commit of that feature with a descriptive message.
+4. Once all feedback loops pass for the completed feature, set its passes field to true in ${prdRelative}.
+5. Make a git commit of that feature with a descriptive message.
 ONLY WORK ON A SINGLE FEATURE PER RUN.
 If all features in the PRD have passes=true and all feedback loops are green,
 output exactly: <promise>COMPLETE</promise>"
 
     $result = claude -p --dangerously-skip-permissions $prompt
     Write-Host $result
+
+    $commitsAfter = git log --oneline 2>$null
+    $newCommits = $commitsAfter | Where-Object { $commitsBefore -notcontains $_ }
+    if ($newCommits) {
+        Write-Host ""
+        Write-Host "==> Commits this run:"
+        $newCommits | ForEach-Object { Write-Host "    $_" }
+    }
 
     if ($result -match '<promise>COMPLETE</promise>') {
         Write-Host ""
