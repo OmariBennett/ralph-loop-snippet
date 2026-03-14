@@ -94,6 +94,11 @@ Write-Host "==> Ralph HITL - single iteration for: __NAME__"
 Write-Host "    Project: $projectDir"
 Write-Host ""
 
+# Auto-detect bash path (PS5-compatible: ?. null-conditional requires PS7+)
+$bashCmd = Get-Command bash -ErrorAction SilentlyContinue
+if ($bashCmd) { $bash = $bashCmd.Source } else { $bash = 'bash' }
+$runnerSh = Join-Path $projectDir "__NAME__-ralph-once.sh"
+
 # IMPORTANT: Push-Location so claude's @file references resolve correctly.
 # Claude Code's @filename syntax is relative to the current working directory.
 Push-Location $projectDir
@@ -115,6 +120,9 @@ output exactly: <promise>COMPLETE</promise>"
         Write-Host ""
         Write-Host "==> COMPLETE - all features done. Delete progress.txt when your sprint is over."
     }
+
+    Write-Host ""
+    Write-Host "Tip: to run the bash variant: & '$bash' '$runnerSh'"
 } finally {
     Pop-Location
 }
